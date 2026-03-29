@@ -23,6 +23,9 @@ export default function VideoCall({ sessionId, token }) {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
+  // ✅ NEW STATE (fix for ref error)
+  const [isPublisherReady, setIsPublisherReady] = useState(false);
+
   const sessionRef = useRef(null);
   const publisherRef = useRef(null);
 
@@ -49,16 +52,12 @@ export default function VideoCall({ sessionId, token }) {
       return;
     }
 
-    console.log({ appId, sessionId, token });
-
     try {
-      // Initialize the session
+      // Initialize session
       sessionRef.current = window.OT.initSession(appId, sessionId);
 
-      // Subscribe to new streams
+      // Subscribe to streams
       sessionRef.current.on("streamCreated", (event) => {
-        console.log(event, "New stream created");
-
         sessionRef.current.subscribe(
           event.stream,
           "subscriber",
@@ -69,22 +68,22 @@ export default function VideoCall({ sessionId, token }) {
           },
           (error) => {
             if (error) {
-              toast.error("Error connecting to other participant's stream");
+              toast.error("Error connecting to other participant");
             }
           }
         );
       });
 
-      // Handle session events
+      // Session connected
       sessionRef.current.on("sessionConnected", () => {
         setIsConnected(true);
         setIsLoading(false);
 
-        // THIS IS THE FIX - Initialize publisher AFTER session connects
+        // ✅ Initialize publisher AFTER connection
         publisherRef.current = window.OT.initPublisher(
-          "publisher", // This targets the div with id="publisher"
+          "publisher",
           {
-            insertMode: "replace", // Change from "append" to "replace"
+            insertMode: "replace",
             width: "100%",
             height: "100%",
             publishAudio: isAudioEnabled,
@@ -92,12 +91,9 @@ export default function VideoCall({ sessionId, token }) {
           },
           (error) => {
             if (error) {
-              console.error("Publisher error:", error);
-              toast.error("Error initializing your camera and microphone");
+              toast.error("Error initializing camera/mic");
             } else {
-              console.log(
-                "Publisher initialized successfully - you should see your video now"
-              );
+              setIsPublisherReady(true); // ✅ IMPORTANT FIX
             }
           }
         );
@@ -107,21 +103,13 @@ export default function VideoCall({ sessionId, token }) {
         setIsConnected(false);
       });
 
-      // Connect to the session
+      // Connect session
       sessionRef.current.connect(token, (error) => {
         if (error) {
-          toast.error("Error connecting to video session");
+          toast.error("Error connecting to session");
         } else {
-          // Publish your stream AFTER connecting
           if (publisherRef.current) {
-            sessionRef.current.publish(publisherRef.current, (error) => {
-              if (error) {
-                console.log("Error publishing stream:", error);
-                toast.error("Error publishing your stream");
-              } else {
-                console.log("Stream published successfully");
-              }
-            });
+            sessionRef.current.publish(publisherRef.current);
           }
         }
       });
@@ -149,13 +137,11 @@ export default function VideoCall({ sessionId, token }) {
 
   // End call
   const endCall = () => {
-    // Properly destroy publisher
     if (publisherRef.current) {
       publisherRef.current.destroy();
       publisherRef.current = null;
     }
 
-    // Disconnect session
     if (sessionRef.current) {
       sessionRef.current.disconnect();
       sessionRef.current = null;
@@ -164,7 +150,7 @@ export default function VideoCall({ sessionId, token }) {
     router.push("/appointments");
   };
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       if (publisherRef.current) {
@@ -176,6 +162,7 @@ export default function VideoCall({ sessionId, token }) {
     };
   }, []);
 
+  // Invalid params UI
   if (!sessionId || !token || !appId) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
@@ -185,10 +172,7 @@ export default function VideoCall({ sessionId, token }) {
         <p className="text-muted-foreground mb-6">
           Missing required parameters for the video call.
         </p>
-        <Button
-          onClick={() => router.push("/appointments")}
-          className="bg-emerald-600 hover:bg-emerald-700"
-        >
+        <Button onClick={() => router.push("/appointments")}>
           Back to Appointments
         </Button>
       </div>
@@ -201,7 +185,7 @@ export default function VideoCall({ sessionId, token }) {
         src="https://unpkg.com/@vonage/client-sdk-video@latest/dist/js/opentok.js"
         onLoad={handleScriptLoad}
         onError={() => {
-          toast.error("Failed to load video call script");
+          toast.error("Failed to load video script");
           setIsLoading(false);
         }}
       />
@@ -221,104 +205,51 @@ export default function VideoCall({ sessionId, token }) {
         </div>
 
         {isLoading && !scriptLoaded ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 text-emerald-400 animate-spin mb-4" />
-            <p className="text-white text-lg">
-              Loading video call components...
-            </p>
+          <div className="flex flex-col items-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin mb-4" />
+            <p>Loading video...</p>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Publisher (Your video) */}
-              <div className="border border-emerald-900/20 rounded-lg overflow-hidden">
-                <div className="bg-emerald-900/10 px-3 py-2 text-emerald-400 text-sm font-medium">
-                  You
-                </div>
-                <div
-                  id="publisher"
-                  className="w-full h-[300px] md:h-[400px] bg-muted/30"
-                >
-                  {!scriptLoaded && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="bg-muted/20 rounded-full p-8">
-                        <User className="h-12 w-12 text-emerald-400" />
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Your Video */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="p-2 text-sm">You</div>
+                <div id="publisher" className="h-[350px] bg-muted" />
               </div>
 
-              {/* Subscriber (Other person's video) */}
-              <div className="border border-emerald-900/20 rounded-lg overflow-hidden">
-                <div className="bg-emerald-900/10 px-3 py-2 text-emerald-400 text-sm font-medium">
-                  Other Participant
-                </div>
-                <div
-                  id="subscriber"
-                  className="w-full h-[300px] md:h-[400px] bg-muted/30"
-                >
-                  {(!isConnected || !scriptLoaded) && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="bg-muted/20 rounded-full p-8">
-                        <User className="h-12 w-12 text-emerald-400" />
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {/* Other User */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="p-2 text-sm">Other Participant</div>
+                <div id="subscriber" className="h-[350px] bg-muted" />
               </div>
             </div>
 
-            {/* Video controls */}
-            <div className="flex justify-center space-x-4">
+            {/* Controls */}
+            <div className="flex justify-center gap-4">
               <Button
-                variant="outline"
-                size="lg"
                 onClick={toggleVideo}
-                className={`rounded-full p-4 h-14 w-14 ${
-                  isVideoEnabled
-                    ? "border-emerald-900/30"
-                    : "bg-red-900/20 border-red-900/30 text-red-400"
-                }`}
-                disabled={!publisherRef.current}
+                disabled={!isPublisherReady} // ✅ FIXED
               >
                 {isVideoEnabled ? <Video /> : <VideoOff />}
               </Button>
 
               <Button
-                variant="outline"
-                size="lg"
                 onClick={toggleAudio}
-                className={`rounded-full p-4 h-14 w-14 ${
-                  isAudioEnabled
-                    ? "border-emerald-900/30"
-                    : "bg-red-900/20 border-red-900/30 text-red-400"
-                }`}
-                disabled={!publisherRef.current}
+                disabled={!isPublisherReady} // ✅ FIXED
               >
                 {isAudioEnabled ? <Mic /> : <MicOff />}
               </Button>
 
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={endCall}
-                className="rounded-full p-4 h-14 w-14 bg-red-600 hover:bg-red-700"
-              >
+              <Button onClick={endCall} variant="destructive">
                 <PhoneOff />
               </Button>
             </div>
 
-            <div className="text-center">
-              <p className="text-muted-foreground text-sm">
-                {isVideoEnabled ? "Camera on" : "Camera off"} •
-                {isAudioEnabled ? " Microphone on" : " Microphone off"}
-              </p>
-              <p className="text-muted-foreground text-sm mt-1">
-                When you're finished with your consultation, click the red
-                button to end the call
-              </p>
-            </div>
+            <p className="text-center text-sm">
+              {isVideoEnabled ? "Camera on" : "Camera off"} •{" "}
+              {isAudioEnabled ? "Mic on" : "Mic off"}
+            </p>
           </div>
         )}
       </div>
