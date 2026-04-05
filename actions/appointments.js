@@ -16,7 +16,7 @@ import path from "path"; // Add this
 // const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 
 
-
+console.log("PRIVATE_KEY:", process.env.PRIVATE_KEY);
 const privateKey = process.env.PRIVATE_KEY?.replace(/\\n/g, "\n");
 
 const credentials = new Auth({
