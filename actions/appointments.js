@@ -11,18 +11,42 @@ import { Auth } from "@vonage/auth";
 import fs from "fs"; // Add this
 import path from "path"; // Add this
 
+// 🔴 ADD THIS BLOCK HERE
+const rawKey = process.env.PRIVATE_KEY;
+
+if (!rawKey || rawKey.trim() === "") {
+  throw new Error("PRIVATE_KEY ENV NOT FOUND OR EMPTY");
+}
+
+const privateKey = rawKey.replace(/\\n/g, "\n");
+
+console.log("KEY LENGTH:", privateKey.length);
+
+// 🔽 THEN THIS (already in your code)
+const credentials = new Auth({
+  applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
+  privateKey: privateKey,
+});
+
+
+
+
+
+
+
+
 // // 1. Read the file directly to avoid .env formatting issues
 // const privateKeyPath = path.join(process.cwd(), "lib", "private.key");
 // const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 
 
-console.log("PRIVATE_KEY:", process.env.PRIVATE_KEY);
-const privateKey = process.env.PRIVATE_KEY?.replace(/\\n/g, "\n");
+// console.log("PRIVATE_KEY:", process.env.PRIVATE_KEY);
+// const privateKey = process.env.PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-const credentials = new Auth({
-  applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
-  privateKey: privateKey,
-});
+// const credentials = new Auth({
+//   applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
+//   privateKey: privateKey,
+// });
 
 
 // // 2. Initialize with your working ID and the file-based key
