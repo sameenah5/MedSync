@@ -7,15 +7,17 @@ import { deductCreditsForAppointment } from "@/actions/credits";
 import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
 import { Auth } from "@vonage/auth";
-// import fs from "fs"; // Add this
-// import path from "path"; // Add this
 
-// // 1. Read the file directly to avoid .env formatting issues
-// const privateKeyPath = path.join(process.cwd(), "lib", "private.key");
-// const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+import fs from "fs"; // Add this
+import path from "path"; // Add this
+
+// 1. Read the file directly to avoid .env formatting issues
+const privateKeyPath = path.join(process.cwd(), "lib", "private.key");
+const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 
 
-const privateKey = process.env.PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+// const privateKey = process.env.PRIVATE_KEY?.replace(/\\n/g, "\n");
 
 const credentials = new Auth({
   applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
