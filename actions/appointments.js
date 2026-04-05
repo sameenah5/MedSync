@@ -12,7 +12,7 @@ import fs from "fs"; // Add this
 import path from "path"; // Add this
 
 // 🔴 ADD THIS BLOCK HERE
-const rawKey = process.env.PRIVATE_KEY;
+const rawKey = process.env.VONAGE_PRIVATE_KEY;
 
 if (!rawKey || rawKey.trim() === "") {
   throw new Error("PRIVATE_KEY ENV NOT FOUND OR EMPTY");
