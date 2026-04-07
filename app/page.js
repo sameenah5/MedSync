@@ -193,7 +193,7 @@ export default function Home() {
                 key={index}
                 className="border-emerald-900/20 hover:border-emerald-800/40 transition-all"
               >
-                <CardContent className="pt-30">
+                <CardContent className="pt-6">
                   <div className="flex items-center mb-4">
                     <div className="w-12 h-12 rounded-full bg-emerald-900/20 flex items-center justify-center mr-4">
                       <span className="text-emerald-400 font-bold">

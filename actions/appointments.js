@@ -20,19 +20,13 @@ if (!rawKey || rawKey.trim() === "") {
 
 const privateKey = rawKey.replace(/\\n/g, "\n");
 
-console.log("KEY LENGTH:", privateKey.length);
+// console.log("KEY LENGTH:", privateKey.length);
 
 // 🔽 THEN THIS (already in your code)
 const credentials = new Auth({
   applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
   privateKey: privateKey,
 });
-
-
-
-
-
-
 
 
 // // 1. Read the file directly to avoid .env formatting issues

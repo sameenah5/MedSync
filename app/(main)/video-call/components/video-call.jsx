@@ -1,19 +1,11 @@
+// vc.jsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { Button } from "@/components/button";
-import { Card, CardContent } from "@/components/card";
-import {
-  Loader2,
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  PhoneOff,
-  User,
-} from "lucide-react";
+import { Loader2, Video, VideoOff, Mic, MicOff, PhoneOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VideoCall({ sessionId, token }) {
@@ -22,18 +14,13 @@ export default function VideoCall({ sessionId, token }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-
-  // ✅ NEW STATE (fix for ref error)
   const [isPublisherReady, setIsPublisherReady] = useState(false);
 
   const sessionRef = useRef(null);
   const publisherRef = useRef(null);
-
   const router = useRouter();
-
   const appId = process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID;
 
-  // Handle script load
   const handleScriptLoad = () => {
     setScriptLoaded(true);
     if (!window.OT) {
@@ -44,7 +31,6 @@ export default function VideoCall({ sessionId, token }) {
     initializeSession();
   };
 
-  // Initialize video session
   const initializeSession = () => {
     if (!appId || !sessionId || !token) {
       toast.error("Missing required video call parameters");
@@ -53,10 +39,8 @@ export default function VideoCall({ sessionId, token }) {
     }
 
     try {
-      // Initialize session
       sessionRef.current = window.OT.initSession(appId, sessionId);
 
-      // Subscribe to streams
       sessionRef.current.on("streamCreated", (event) => {
         sessionRef.current.subscribe(
           event.stream,
@@ -67,19 +51,14 @@ export default function VideoCall({ sessionId, token }) {
             height: "100%",
           },
           (error) => {
-            if (error) {
-              toast.error("Error connecting to other participant");
-            }
+            if (error) toast.error("Error connecting to other participant");
           }
         );
       });
 
-      // Session connected
       sessionRef.current.on("sessionConnected", () => {
         setIsConnected(true);
         setIsLoading(false);
-
-        // ✅ Initialize publisher AFTER connection
         publisherRef.current = window.OT.initPublisher(
           "publisher",
           {
@@ -90,27 +69,17 @@ export default function VideoCall({ sessionId, token }) {
             publishVideo: isVideoEnabled,
           },
           (error) => {
-            if (error) {
-              toast.error("Error initializing camera/mic");
-            } else {
-              setIsPublisherReady(true); // ✅ IMPORTANT FIX
-            }
+            if (error) toast.error("Error initializing camera/mic");
+            else setIsPublisherReady(true);
           }
         );
       });
 
-      sessionRef.current.on("sessionDisconnected", () => {
-        setIsConnected(false);
-      });
+      sessionRef.current.on("sessionDisconnected", () => setIsConnected(false));
 
-      // Connect session
       sessionRef.current.connect(token, (error) => {
-        if (error) {
-          toast.error("Error connecting to session");
-        } else {
-          if (publisherRef.current) {
-            sessionRef.current.publish(publisherRef.current);
-          }
+        if (!error && publisherRef.current) {
+          sessionRef.current.publish(publisherRef.current);
         }
       });
     } catch (error) {
@@ -119,7 +88,6 @@ export default function VideoCall({ sessionId, token }) {
     }
   };
 
-  // Toggle video
   const toggleVideo = () => {
     if (publisherRef.current) {
       publisherRef.current.publishVideo(!isVideoEnabled);
@@ -127,7 +95,6 @@ export default function VideoCall({ sessionId, token }) {
     }
   };
 
-  // Toggle audio
   const toggleAudio = () => {
     if (publisherRef.current) {
       publisherRef.current.publishAudio(!isAudioEnabled);
@@ -135,46 +102,27 @@ export default function VideoCall({ sessionId, token }) {
     }
   };
 
-  // End call
   const endCall = () => {
-    if (publisherRef.current) {
-      publisherRef.current.destroy();
-      publisherRef.current = null;
-    }
-
-    if (sessionRef.current) {
-      sessionRef.current.disconnect();
-      sessionRef.current = null;
-    }
-
+    if (publisherRef.current) publisherRef.current.destroy();
+    if (sessionRef.current) sessionRef.current.disconnect();
     router.push("/appointments");
   };
 
-  // Cleanup
   useEffect(() => {
     return () => {
-      if (publisherRef.current) {
-        publisherRef.current.destroy();
-      }
-      if (sessionRef.current) {
-        sessionRef.current.disconnect();
-      }
+      if (publisherRef.current) publisherRef.current.destroy();
+      if (sessionRef.current) sessionRef.current.disconnect();
     };
   }, []);
 
-  // Invalid params UI
   if (!sessionId || !token || !appId) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-3xl font-bold text-white mb-4">
-          Invalid Video Call
-        </h1>
+        <h1 className="text-3xl font-bold text-white mb-4">Invalid Video Call</h1>
         <p className="text-muted-foreground mb-6">
           Missing required parameters for the video call.
         </p>
-        <Button onClick={() => router.push("/appointments")}>
-          Back to Appointments
-        </Button>
+        <Button onClick={() => router.push("/appointments")}>Back to Appointments</Button>
       </div>
     );
   }
@@ -192,15 +140,9 @@ export default function VideoCall({ sessionId, token }) {
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Video Consultation
-          </h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Video Consultation</h1>
           <p className="text-muted-foreground">
-            {isConnected
-              ? "Connected"
-              : isLoading
-              ? "Connecting..."
-              : "Connection failed"}
+            {isConnected ? "Connected" : isLoading ? "Connecting..." : "Connection failed"}
           </p>
         </div>
 
@@ -211,33 +153,36 @@ export default function VideoCall({ sessionId, token }) {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            {/* Video Grid */}
+            <div className="grid md:grid-cols-2 gap-4">
               {/* Your Video */}
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-hidden flex flex-col">
                 <div className="p-2 text-sm">You</div>
-                <div id="publisher" className="h-[350px] bg-muted" />
+                <div
+                  id="publisher"
+                  className="w-full aspect-video bg-muted"
+                  style={{ maxHeight: "60vh" }}
+                />
               </div>
 
               {/* Other User */}
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-hidden flex flex-col">
                 <div className="p-2 text-sm">Other Participant</div>
-                <div id="subscriber" className="h-[350px] bg-muted" />
+                <div
+                  id="subscriber"
+                  className="w-full aspect-video bg-muted"
+                  style={{ maxHeight: "60vh" }}
+                />
               </div>
             </div>
 
             {/* Controls */}
             <div className="flex justify-center gap-4">
-              <Button
-                onClick={toggleVideo}
-                disabled={!isPublisherReady} // ✅ FIXED
-              >
+              <Button onClick={toggleVideo} disabled={!isPublisherReady}>
                 {isVideoEnabled ? <Video /> : <VideoOff />}
               </Button>
 
-              <Button
-                onClick={toggleAudio}
-                disabled={!isPublisherReady} // ✅ FIXED
-              >
+              <Button onClick={toggleAudio} disabled={!isPublisherReady}>
                 {isAudioEnabled ? <Mic /> : <MicOff />}
               </Button>
 
@@ -247,8 +192,7 @@ export default function VideoCall({ sessionId, token }) {
             </div>
 
             <p className="text-center text-sm">
-              {isVideoEnabled ? "Camera on" : "Camera off"} •{" "}
-              {isAudioEnabled ? "Mic on" : "Mic off"}
+              {isVideoEnabled ? "Camera on" : "Camera off"} • {isAudioEnabled ? "Mic on" : "Mic off"}
             </p>
           </div>
         )}

@@ -13,7 +13,7 @@ const DoctorDashboardLayout = ({ children }) => {
         <PageHeader icon={<Stethoscope />} title="Doctor Dashboard" />
 
         {children}
-    Welcome
+    
     </div>
     );
 };
